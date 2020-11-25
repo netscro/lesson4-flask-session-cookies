@@ -11,19 +11,16 @@ def index():
     :return: how many times the user has opened the page
     and which user has authorized on the site (added to the session)
     """
-    # вывод имени пользователя на главной странице в зависимости от наличия Cookies
-    if request.cookies.get('username'):
-        username = request.cookies['username']
+    # вывод имени пользователя на главной странице в зависимости от наличия Сессии
+    if session.get('username'):
+        username = session['username']
     else:
         username = 'Anonymous'
-    # счетчик посетителей
+    # # счетчик посетителей
     counter = 0
-    if session.get('visited'):
-        counter = session['visited']
-    else:
-        session['visited'] = 0
-    session['visited'] += 1
 
+    if request.cookies.get('visitor'):
+        counter = int(request.cookies['visitor'])
     # переменная вывода строки первого посещения и общего кол-ва посещений страницы
     if counter == 0:
         counter_on_page = 'visited this site first time'
@@ -32,6 +29,7 @@ def index():
     # конец переменной вывода
     # выводим страницу основного шаблона
     response = make_response(render_template('index.html', username=username, visit=counter_on_page))
+    response.set_cookie('visitor', str(counter + 1))
     return response
 
 
@@ -41,9 +39,9 @@ def login():
     User login page.
     :return: Username input field and authorized username
     """
-    # проверяем на наличие Cookie
-    if request.cookies.get('username'):
-        username = request.cookies['username']
+    # проверяем на наличие Сессии пользователя
+    if session.get('username'):
+        username = session['username']
         return render_template('logged-user.html', username=username)
 
     # проверяем на GET запрос
@@ -57,12 +55,9 @@ def login():
     # проверяем на POST запрос
     elif request.method == 'POST':
         username = request.form['username']
-        # Выводим шаблон страницы
-        response_logged_user = make_response(render_template('logged-user.html', username=username))
-
-        # устанавливаем Cookies на имя пользователя
-        response_logged_user.set_cookie('username', str(username))
-        return response_logged_user
+        # добавляем сессию пользователю
+        session['username'] = username
+        return make_response(render_template('logged-user.html', username=username))
 
 
 @app.route('/logout')
@@ -73,9 +68,9 @@ def logout():
     """
     logout_user = make_response('<h1>Your session is clear</h1>')
     # удаляем Cookies пользователя
-    logout_user.set_cookie('username', '', 0)
+    logout_user.set_cookie('visitor', '', 0)
     # удаляем сессию (обнуляем счетчик поситителей)
-    session.pop('visited', None)
+    session.pop('username', None)
     return logout_user
 
 
